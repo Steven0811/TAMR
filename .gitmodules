@@ -1,0 +1,12 @@
+[submodule "sensor/ydlidar/ydlidar_ros2_driver"]
+	path = sensor/ydlidar/ydlidar_ros2_driver
+	url = https://github.com/YDLIDAR/ydlidar_ros2_driver.git
+	branch = humble
+[submodule "sensor/ydlidar/YDLidar-SDK"]
+	path = sensor/ydlidar/YDLidar-SDK
+	url = https://github.com/YDLIDAR/YDLidar-SDK.git
+	ignore = untracked
+[submodule "sensor/depth_camera/third_party/pyorbbecsdk"]
+	path = sensor/depth_camera/third_party/pyorbbecsdk
+	url = https://github.com/orbbec/pyorbbecsdk.git
+	ignore = untracked

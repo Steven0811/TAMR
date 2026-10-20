@@ -1,0 +1,129 @@
+# All sensors -> ROS 2 Humble -> foxglove_bridge (ws://localhost:8765)
+#
+# Usage:
+#   ./start.sh                      # detects IMU / lidar serial ports, then docker compose up
+#   docker compose up --build       # or run directly (set IMU_PORT / LIDAR_PORT / LIDAR_MODEL in .env)
+#
+# Every sensor container joins the network + IPC namespace of the `foxglove`
+# service, so all ROS 2 nodes look like one host to DDS and big messages
+# (depth image, point cloud) go over shared memory. Only port 8765 is exposed.
+
+x-ros-env: &ros-env
+  ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+
+x-sensor: &sensor
+  network_mode: service:foxglove
+  ipc: service:foxglove
+  depends_on: [foxglove]
+  restart: unless-stopped
+  environment: *ros-env
+
+services:
+  foxglove:
+    build: { context: ., dockerfile: docker/Dockerfile, target: foxglove }
+    image: sensors-foxglove:humble
+    container_name: foxglove_bridge
+    ipc: shareable
+    ports:
+      - "8765:8765"
+    restart: unless-stopped
+    environment: *ros-env
+
+  imu:
+    <<: *sensor
+    build: { context: ., dockerfile: docker/Dockerfile, target: imu }
+    image: sensors-imu:humble
+    container_name: imu
+    devices:
+      - ${IMU_PORT:-/dev/ttyUSB0}:/dev/imu
+    command: >
+      python3 /app/imu_ros2_node.py --ros-args
+      -p port:=/dev/imu -p baud:=${IMU_BAUD:-0}
+
+  camera:
+    <<: *sensor
+    build: { context: ., dockerfile: docker/Dockerfile, target: camera }
+    image: sensors-camera:humble
+    container_name: orbbec_camera
+    # libusb needs raw access to the USB bus
+    privileged: true
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+    command: >
+      python3 /app/orbbec_ros2_node.py --ros-args
+      -p pointcloud_stride:=${CLOUD_STRIDE:-2}
+      -p pointcloud_rate:=${CLOUD_RATE:-10.0}
+
+  ydlidar:
+    <<: *sensor
+    build: ./ydlidar
+    image: ydlidar-ros2:humble
+    container_name: ydlidar
+    devices:
+      - ${LIDAR_PORT:-/dev/ttyUSB1}:/dev/ttyUSB0
+    volumes:
+      - ./ydlidar/ydlidar_ros2_driver/params:/params:ro
+    # Driver + static TF base_link -> laser_frame, without RViz
+    command: >
+      ros2 launch ydlidar_ros2_driver ydlidar_launch.py
+      params_file:=/params/${LIDAR_MODEL:-ydlidar}.yaml
+
+  # NodeMCU-32S (range_finder/ firmware) talks micro-ROS over USB serial
+  micro_ros_agent:
+    <<: *sensor
+    image: microros/micro-ros-agent:humble
+    container_name: micro_ros_agent
+    devices:
+      - ${ESP32_PORT:-/dev/ttyUSB2}:/dev/esp32
+    command: serial --dev /dev/esp32 -b 115200
+
+  # HotRC DS600 pulses (/rc/pulses from the ESP32) -> /cmd_vel_rc
+  rc_teleop:
+    <<: *sensor
+    build: { context: ., dockerfile: docker/Dockerfile, target: drive }
+    image: sensors-drive:humble
+    container_name: rc_teleop
+    command: >
+      python3 /app/rc_teleop_node.py --ros-args
+      -p max_linear:=${RC_MAX_LINEAR:-0.3}
+      -p enable_ch:=${RC_ENABLE_CH:--1}
+      -p throttle_center_us:=${RC_THROTTLE_CENTER:-1500}
+      -p steering_center_us:=${RC_STEERING_CENTER:-1500}
+      -p invert_throttle:=${RC_INVERT_THROTTLE:-false}
+      -p invert_steering:=${RC_INVERT_STEERING:-false}
+
+  # /cmd_vel_rc (remote, priority) + /cmd_vel_pc (Foxglove / keyboard) -> /cmd_vel
+  twist_mux:
+    <<: *sensor
+    build: { context: ., dockerfile: docker/Dockerfile, target: drive }
+    image: sensors-drive:humble
+    container_name: twist_mux
+    volumes:
+      - ./docker/twist_mux.yaml:/config/twist_mux.yaml:ro
+    command: >
+      ros2 run twist_mux twist_mux --ros-args
+      --params-file /config/twist_mux.yaml
+      -r cmd_vel_out:=cmd_vel
+
+  # /cmd_vel -> DDSM Driver HAT (A) ESP32-USB port -> DDSM115
+  ddsm115:
+    <<: *sensor
+    build: { context: ., dockerfile: docker/Dockerfile, target: drive }
+    image: sensors-drive:humble
+    container_name: ddsm115
+    devices:
+      - ${DDSM_PORT:-/dev/ttyACM0}:/dev/ddsm
+    command: >
+      python3 /app/ddsm115_node.py --ros-args
+      -p wheel_ids:=[${DDSM_IDS:-1}]
+      -p max_rpm:=${DDSM_MAX_RPM:-60}
+      -p wheel_diameter:=${WHEEL_DIAMETER:-0.10}
+
+  range_tf:
+    <<: *sensor
+    image: sensors-foxglove:humble
+    container_name: range_tf
+    command: >
+      ros2 run tf2_ros static_transform_publisher
+      --x ${RANGE_X:-0.05} --y 0 --z ${RANGE_Z:-0.05}
+      --frame-id base_link --child-frame-id ir_range_link

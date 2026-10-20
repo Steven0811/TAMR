@@ -1,0 +1,29 @@
+# Usage:
+#   LIDAR_MODEL=X4 docker compose up --build
+# LIDAR_MODEL is a file name under ydlidar_ros2_driver/params/ (without .yaml); defaults to ydlidar
+services:
+  ydlidar:
+    build: .
+    image: ydlidar-ros2:humble
+    container_name: ydlidar
+    network_mode: host
+    ipc: host
+    devices:
+      - ${LIDAR_PORT:-/dev/ttyUSB0}:/dev/ttyUSB0
+    environment:
+      # WSLg display
+      - DISPLAY=${DISPLAY:-:0}
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-wayland-0}
+      - XDG_RUNTIME_DIR=/mnt/wslg/runtime-dir
+      - PULSE_SERVER=/mnt/wslg/PulseServer
+      # Use software OpenGL; more stable for RViz when WSL has no GPU driver
+      - LIBGL_ALWAYS_SOFTWARE=1
+      - QT_X11_NO_MITSHM=1
+    volumes:
+      - /mnt/wslg:/mnt/wslg
+      - /mnt/wslg/.X11-unix:/tmp/.X11-unix
+      # Mount params directly so editing a yaml needs no rebuild
+      - ./ydlidar_ros2_driver/params:/params:ro
+    command: >
+      ros2 launch ydlidar_ros2_driver ydlidar_launch_view.py
+      params_file:=/params/${LIDAR_MODEL:-ydlidar}.yaml

@@ -1,0 +1,269 @@
+{
+  "configById": {
+    "3D!sensors": {
+      "followTf": "base_link",
+      "followMode": "follow-pose",
+      "cameraState": {
+        "distance": 5,
+        "perspective": true,
+        "phi": 55,
+        "thetaOffset": 45,
+        "targetOffset": [
+          0,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.01,
+        "far": 5000
+      },
+      "scene": {
+        "enableStats": false
+      },
+      "transforms": {
+        "showLabel": true,
+        "axisScale": 0.5
+      },
+      "topics": {
+        "/scan": {
+          "visible": true,
+          "colorField": "range",
+          "colorMode": "colormap",
+          "colorMap": "turbo",
+          "pointSize": 5
+        },
+        "/camera/depth/points": {
+          "visible": true,
+          "colorField": "z",
+          "colorMode": "colormap",
+          "colorMap": "rainbow",
+          "pointSize": 2
+        },
+        "/imu/pose": {
+          "visible": true,
+          "type": "axis",
+          "axisScale": 0.4
+        }
+      },
+      "layers": {
+        "grid": {
+          "visible": true,
+          "layerId": "foxglove.Grid",
+          "label": "Grid",
+          "instanceId": "grid",
+          "frameLocked": true,
+          "size": 10,
+          "divisions": 10,
+          "lineWidth": 1,
+          "color": "#248eff80",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "Image!color": {
+      "imageMode": {
+        "imageTopic": "/camera/color/image_raw/compressed"
+      },
+      "cameraTopic": "/camera/color/image_raw/compressed"
+    },
+    "Image!depth": {
+      "imageMode": {
+        "imageTopic": "/camera/depth/image_raw",
+        "colorMode": "colormap",
+        "colorMap": "turbo",
+        "minValue": 0,
+        "maxValue": 5000
+      },
+      "cameraTopic": "/camera/depth/image_raw"
+    },
+    "Plot!acc": {
+      "title": "IMU acceleration (m/s^2)",
+      "paths": [
+        {
+          "value": "/imu/data.linear_acceleration.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        },
+        {
+          "value": "/imu/data.linear_acceleration.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        },
+        {
+          "value": "/imu/data.linear_acceleration.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        }
+      ],
+      "showLegend": true,
+      "followingViewWidth": 10
+    },
+    "Plot!gyro": {
+      "title": "IMU angular velocity (rad/s)",
+      "paths": [
+        {
+          "value": "/imu/data.angular_velocity.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        },
+        {
+          "value": "/imu/data.angular_velocity.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        },
+        {
+          "value": "/imu/data.angular_velocity.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        }
+      ],
+      "showLegend": true,
+      "followingViewWidth": 10
+    },
+    "Plot!rpy": {
+      "title": "IMU roll / pitch / yaw (deg)",
+      "paths": [
+        {
+          "value": "/imu/rpy.vector.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "roll"
+        },
+        {
+          "value": "/imu/rpy.vector.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "pitch"
+        },
+        {
+          "value": "/imu/rpy.vector.z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "yaw"
+        }
+      ],
+      "showLegend": true,
+      "followingViewWidth": 10
+    },
+    "Plot!range": {
+      "title": "IR range finder (m)",
+      "paths": [
+        {
+          "value": "/range_finder/range.range",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "range"
+        }
+      ],
+      "minYValue": 0,
+      "maxYValue": 0.9,
+      "showLegend": true,
+      "followingViewWidth": 10
+    },
+    "Teleop!pc": {
+      "topic": "/cmd_vel_pc",
+      "publishRate": 10,
+      "upButton": {
+        "field": "linear-x",
+        "value": 0.15
+      },
+      "downButton": {
+        "field": "linear-x",
+        "value": -0.15
+      },
+      "leftButton": {
+        "field": "angular-z",
+        "value": 0.8
+      },
+      "rightButton": {
+        "field": "angular-z",
+        "value": -0.8
+      }
+    },
+    "Plot!wheel": {
+      "title": "Wheel speed (rad/s)",
+      "paths": [
+        {
+          "value": "/wheel/joint_states.velocity[0]",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "wheel_1"
+        },
+        {
+          "value": "/cmd_vel.linear.x",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "label": "cmd_vel.linear.x (m/s)"
+        }
+      ],
+      "showLegend": true,
+      "followingViewWidth": 10
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "direction": "row",
+    "first": {
+      "direction": "column",
+      "first": "3D!sensors",
+      "second": {
+        "direction": "row",
+        "first": "Plot!range",
+        "second": {
+          "direction": "row",
+          "first": "Teleop!pc",
+          "second": "Plot!wheel",
+          "splitPercentage": 40
+        },
+        "splitPercentage": 34
+      },
+      "splitPercentage": 60
+    },
+    "second": {
+      "direction": "column",
+      "first": {
+        "direction": "row",
+        "first": "Image!color",
+        "second": "Image!depth",
+        "splitPercentage": 50
+      },
+      "second": {
+        "direction": "column",
+        "first": "Plot!acc",
+        "second": {
+          "direction": "row",
+          "first": "Plot!gyro",
+          "second": "Plot!rpy",
+          "splitPercentage": 50
+        },
+        "splitPercentage": 50
+      },
+      "splitPercentage": 45
+    },
+    "splitPercentage": 45
+  }
+}

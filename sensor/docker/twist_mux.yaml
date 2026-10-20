@@ -1,0 +1,13 @@
+# Command sources for /cmd_vel. Higher priority wins while it keeps publishing;
+# after `timeout` s of silence the next source takes over.
+twist_mux:
+  ros__parameters:
+    topics:
+      rc:
+        topic: cmd_vel_rc      # HotRC DS600 (rc_teleop), only publishes while sticks are moved
+        timeout: 0.5
+        priority: 100
+      pc:
+        topic: cmd_vel_pc      # Foxglove Teleop panel / teleop_twist_keyboard
+        timeout: 0.5
+        priority: 10
